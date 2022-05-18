@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -14,6 +15,10 @@ import kotlinx.coroutines.*
 
 class MyForegroundService : Service() {
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private val notificationBuilder by lazy { createNotificationBuilder() }
+    private val notificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
+
+    var onProgressChanged: ((Int) -> Unit)? = null
 
     // Сервіс створюється
     override fun onCreate() {
@@ -21,12 +26,10 @@ class MyForegroundService : Service() {
         log("onCreate")
 
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, createNotification())
+        startForeground(NOTIFICATION_ID, notificationBuilder.build())
     }
 
     private fun createNotificationChannel() {
-        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationChanel = NotificationChannel(
                 CHANNEL_ID,
@@ -38,14 +41,12 @@ class MyForegroundService : Service() {
         }
     }
 
-    private fun createNotification(): Notification {
-
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Foreground Service")
-            .setContentText("Counting...")
-            .setSmallIcon(R.mipmap.ic_launcher_round)
-            .build()
-    }
+    private fun createNotificationBuilder() = NotificationCompat.Builder(this, CHANNEL_ID)
+        .setContentTitle("Foreground Service")
+        .setContentText("Counting...")
+        .setSmallIcon(R.mipmap.ic_launcher_round)
+        .setProgress(100, 0, false)
+        .setOnlyAlertOnce(true)
 
     /**
      * Тут відбувається уся робота сервісу. Цей метод вконується у головноту потоці.
@@ -55,8 +56,11 @@ class MyForegroundService : Service() {
         log("onStartCommand")
 
         coroutineScope.launch {
-            for (i in 0 until 15) {
+            for (i in 0..100 step 5) {
                 delay(1000)
+                val notification = notificationBuilder.setProgress(100, i, false).build()
+                notificationManager.notify(NOTIFICATION_ID, notification)
+                onProgressChanged?.invoke(i)
                 log("Timer $i")
             }
             stopSelf() // Зупитяє сервіс з середини
@@ -72,8 +76,16 @@ class MyForegroundService : Service() {
         log("onDestroy")
     }
 
-    override fun onBind(p0: Intent?): IBinder? {
-        TODO("Not yet implemented")
+    /**
+     * Тут ми повертаємр екземплаяр IBinder-ного типу, onBind інсує щоб ми могли підписатися на якісь зміни ззовні
+     * Ми повернемо метод getService який повертає посилання на сервіс, а отже на всі його методи і поля
+     */
+    override fun onBind(p0: Intent?): IBinder {
+        return LocalBinder()
+    }
+
+    inner class LocalBinder : Binder() {
+        fun getService(): MyForegroundService = this@MyForegroundService
     }
 
     private fun log(message: String) {

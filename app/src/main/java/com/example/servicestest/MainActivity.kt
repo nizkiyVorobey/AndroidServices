@@ -5,11 +5,13 @@ import android.app.NotificationManager
 import android.app.job.JobInfo
 import android.app.job.JobScheduler
 import android.content.ComponentName
+import android.content.ServiceConnection
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -145,6 +147,39 @@ class MainActivity : AppCompatActivity() {
 
 
         notificationManager.notify(1, notification)
+    }
+
+    // підписка на serviceConnection, ми отримаємо дотсуп до нашог осервісу і всфх його полів, і слухаємо зміни прогресу в onProgressChanged
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = (service as? MyForegroundService.LocalBinder) ?: return
+            val foregroundService = binder.getService()
+            foregroundService.onProgressChanged = { progress ->
+                binding.progressBar.progress = progress
+            }
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+
+        }
+
+    }
+
+    // На старт activity ми підписуємось на сервіс
+    override fun onStart() {
+        super.onStart()
+
+        bindService(
+            MyForegroundService.newIntent(this),
+            serviceConnection,
+            0
+        )
+    }
+
+    // тут відписуємось від підписки на сервіс
+    override fun onStop() {
+        super.onStop()
+        unbindService(serviceConnection)
     }
 
     companion object {

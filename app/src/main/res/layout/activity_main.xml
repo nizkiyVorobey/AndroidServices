@@ -7,6 +7,17 @@
     android:orientation="vertical"
     tools:context=".MainActivity">
 
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="10dp"
+        android:layout_marginBottom="10dp"
+        android:max="100"
+        android:progress="0"
+        tools:progress="30" />
+
     <Button
         android:id="@+id/simple_service"
         style="@style/ServiceButtonStyle"

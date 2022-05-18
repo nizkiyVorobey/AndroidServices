@@ -33,15 +33,9 @@ class MyWorker(context: Context, private val workerParameters: WorkerParameters)
             return OneTimeWorkRequestBuilder<MyWorker>()
                 .apply {
                     setInputData(
-                        workDataOf(
-                            Pair(
-                                PAGE,
-                                page
-                            )
-                        ) // or workDataOf(PAGE to page). Це так само сторить Pair
+                        workDataOf(Pair(PAGE, page)) // or workDataOf(PAGE to page). Це так само сторить Pair
                     )
                     setConstraints(makeConstraints())
-
                 }
                 .build()
         }
